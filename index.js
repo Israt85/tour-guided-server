@@ -31,6 +31,8 @@ async function run() {
     await client.connect();
     const tourCollection = client.db('tour-guided').collection('tours')
     const guidesCollection = client.db('tour-guided').collection('guides')
+    const bookingCollection = client.db('tour-guided').collection('bookings')
+    const wishCollection = client.db('tour-guided').collection('wish')
 
 
     // tours related api
@@ -53,12 +55,38 @@ async function run() {
         res.send(result)
     })
 
-    app.post('/guides', async(req,res)=>{
+
+
+
+
+
+    // bookings related api
+     app.get('/bookings', async(req,res)=>{
+        const email = req.query.email
+        const query ={email : email}
+        const result= await bookingCollection.find(query).toArray()
+        res.send(result)
+     })
+
+    app.post('/bookings', async(req,res)=>{
         const user = req.body;
-        const result = await guidesCollection.insertOne(user)
+        const result = await bookingCollection.insertOne(user)
         res.send(result)
     })
 
+
+    app.get('/wishlist', async(req,res)=>{
+        const email = req.query.email
+        const query ={email : email}
+        const result= await wishCollection.find(query).toArray()
+        res.send(result)
+
+    })
+    app.post('/wishlist', async(req,res)=>{
+        const user = req.body
+        const result = await wishCollection.insertOne(user)
+        res.send(result)
+    })
 
 
 

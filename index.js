@@ -1,7 +1,9 @@
 const express = require('express');
+const jwt = require('jsonwebtoken')
 const cors = require('cors');
 const { MongoClient, ServerApiVersion,ObjectId } = require('mongodb');
 require('dotenv').config()
+
 const app = express()
 const port = process.env.PORT || 5000
 
@@ -33,6 +35,16 @@ async function run() {
     const guidesCollection = client.db('tour-guided').collection('guides')
     const bookingCollection = client.db('tour-guided').collection('bookings')
     const wishCollection = client.db('tour-guided').collection('wish')
+
+
+    // jwt related api
+    app.post('/jwt', async(req,res)=>{
+      const user = req.body
+      const token = jwt.sign(user, process.env.SECRET_TOKEN, {expiresIn: '1h'})
+      res.send({token})
+    })
+
+
 
 
     // tours related api

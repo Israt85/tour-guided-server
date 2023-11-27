@@ -36,6 +36,7 @@ async function run() {
     const bookingCollection = client.db('tour-guided').collection('bookings')
     const wishCollection = client.db('tour-guided').collection('wish')
     const storyCollection = client.db('tour-guided').collection('story')
+    const userCollection = client.db('tour-guided').collection('users')
 
 
     // jwt related api
@@ -46,7 +47,12 @@ async function run() {
     })
 
 
-
+    //  user related api
+   app.post('/users',async(req,res)=>{
+    const users = req.body
+    const result = await userCollection.insertOne(users)
+    res.send(result)
+   })
 
     // tours related api
     app.get('/tours', async(req,res)=>{

@@ -35,6 +35,7 @@ async function run() {
     const guidesCollection = client.db('tour-guided').collection('guides')
     const bookingCollection = client.db('tour-guided').collection('bookings')
     const wishCollection = client.db('tour-guided').collection('wish')
+    const storyCollection = client.db('tour-guided').collection('story')
 
 
     // jwt related api
@@ -100,6 +101,18 @@ async function run() {
         res.send(result)
     })
 
+
+    //story related api
+
+    app.get('/story', async(req,res)=>{
+        const result = await storyCollection.find().toArray()
+        res.send(result)
+    })
+    app.post('/story', async(req,res)=>{
+        const story = req.body
+        const result = await storyCollection.insertOne(story)
+        res.send(result)
+    })    
 
 
     // Send a ping to confirm a successful connection

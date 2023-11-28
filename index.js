@@ -12,6 +12,14 @@ app.use(express.json())
 console.log(process.env.DB_USER);
 
 
+const verifytoken = (req,res,next)=>{
+    console.log('inside headers',req.headers );
+    if(!req.headers.authorization){
+        return res.status(403).send({message: 'forbidden access'})
+    }
+    const token = req.headers.authorization.split(' ')[1]
+    res.send({token})
+}
 
 
 
@@ -49,6 +57,7 @@ async function run() {
 
     //  user related api
     app.get('/users', async(req,res)=>{
+        console.log(req.headers);
         const result = await userCollection.find().toArray()
         res.send(result)
     })
@@ -60,6 +69,28 @@ async function run() {
         return res.send({message: 'user already in', insertedId: null})
     }
     const result = await userCollection.insertOne(users)
+    res.send(result)
+   })
+   app.patch('/users/admin/:id', async(req,res)=>{
+    const id = req.params.id
+    const filter={_id : new ObjectId(id)}
+    const updatedRole = {
+        $set: {
+            role: 'admin'
+        }
+    };
+    const result = await userCollection.updateOne(filter,updatedRole)
+    res.send(result)
+   })
+   app.patch('/users/tourguide/:id', async(req,res)=>{
+    const id = req.params.id
+    const filter={_id : new ObjectId(id)}
+    const updatedRole = {
+        $set: {
+            role: 'tour guide'
+        }
+    };
+    const result = await userCollection.updateOne(filter,updatedRole)
     res.send(result)
    })
    app.delete('/users/:id', async(req,res)=>{
@@ -75,12 +106,11 @@ async function run() {
         const result = await tourCollection.find().toArray()
         res.send(result)
     })
-    // app.get('/tours/:id', async(req,res)=>{
-    //     const id = req.params.id;
-    //       const query = {_id: new ObjectId(id)}
-    //       const result = await tourCollection.findOne(query);
-    //       res.send(result)
-    // })
+    app.post('/tours', async(req,res)=>{
+        const tours = req.body
+        const result= await tourCollection.insertOne(tours)
+        res.send(result)
+    })
 
 
     // guides related api
@@ -89,7 +119,13 @@ async function run() {
         res.send(result)
     })
 
+     app.get('/admin-profile', async(req,res)=>{
+        const tours = await tourCollection.estimatedDocumentCount()
+        const guides = await guidesCollection.estimatedDocumentCount()
+        const users = await userCollection.estimatedDocumentCount()
 
+        res.send({tours,guides,users})
+     })
 
 
 

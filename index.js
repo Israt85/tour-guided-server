@@ -12,14 +12,8 @@ app.use(express.json())
 console.log(process.env.DB_USER);
 
 
-const verifytoken = (req,res,next)=>{
-    console.log('inside headers',req.headers );
-    if(!req.headers.authorization){
-        return res.status(403).send({message: 'forbidden access'})
-    }
-    const token = req.headers.authorization.split(' ')[1]
-    res.send({token})
-}
+
+
 
 
 
@@ -46,6 +40,7 @@ async function run() {
     const storyCollection = client.db('tour-guided').collection('story')
     const userCollection = client.db('tour-guided').collection('users')
 
+    
 
     // jwt related api
     app.post('/jwt', async(req,res)=>{
@@ -55,13 +50,67 @@ async function run() {
     })
 
 
+    const verifytoken = (req,res,next)=>{
+        if(!req.headers.authorization){
+            return res.status(403).send({message: 'forbidden access'})
+        }
+        const token = req.headers.authorization.split(' ')[1]
+        jwt.verify(token, process.env.SECRET_TOKEN, (error,decoded)=>{
+            if(error){
+                return res.status(403).send({message: 'forbidden access'})
+            }
+            req.decoded = decoded
+            next()
+        })
+        
+    }
+
+    const verifyAdmin = async(req,res,next)=>{
+        const email = req.decoded?.email
+        const query = {email : email}
+        const user = await userCollection.findOne(query)
+        const isAdmin = user?.role === 'admin'
+        if(!isAdmin){
+          return res.status(403).send({message: 'forbidden access'})
+        }
+        next()
+      }
+
     //  user related api
-    app.get('/users', async(req,res)=>{
+    app.get('/users',verifytoken,verifyAdmin, async(req,res)=>{
         console.log(req.headers);
         const result = await userCollection.find().toArray()
         res.send(result)
     })
-   app.post('/users',async(req,res)=>{
+
+    app.get('/users/admin/:email',verifytoken, async(req,res)=>{
+        const email = req.params.email
+        if(email !== req.decoded.email){
+            return res.status(403).send({message: 'unauthorized access'})
+        }
+        const query = {email : email}
+        const user = await userCollection.findOne(query)
+        let admin =false
+        if(user){
+            admin = user?.role ==='admin'
+        }
+        res.send({admin})
+    })
+    app.get('/users/tourguide/:email',verifytoken, async(req,res)=>{
+        const email = req.params.email
+        if(email !== req.decoded.email){
+            return res.status(403).send({message: 'unauthorized access'})
+        }
+        const query = {email : email}
+        const user = await userCollection.findOne(query)
+        let tourGuide =false
+        if(user){
+            tourGuide = user?.role ==='tour guide'
+        }
+        res.send({tourGuide})
+    })
+
+   app.post('/users',verifytoken,verifyAdmin,async(req,res)=>{
     const users = req.body
     const query = {email : users.email}
     const existingUser = await userCollection.findOne(query)
@@ -71,7 +120,7 @@ async function run() {
     const result = await userCollection.insertOne(users)
     res.send(result)
    })
-   app.patch('/users/admin/:id', async(req,res)=>{
+   app.patch('/users/admin/:id',verifytoken,verifyAdmin, async(req,res)=>{
     const id = req.params.id
     const filter={_id : new ObjectId(id)}
     const updatedRole = {
@@ -82,7 +131,8 @@ async function run() {
     const result = await userCollection.updateOne(filter,updatedRole)
     res.send(result)
    })
-   app.patch('/users/tourguide/:id', async(req,res)=>{
+
+   app.patch('/users/tourguide/:id',verifytoken,verifyAdmin, async(req,res)=>{
     const id = req.params.id
     const filter={_id : new ObjectId(id)}
     const updatedRole = {
@@ -93,7 +143,7 @@ async function run() {
     const result = await userCollection.updateOne(filter,updatedRole)
     res.send(result)
    })
-   app.delete('/users/:id', async(req,res)=>{
+   app.delete('/users/:id',verifytoken,verifyAdmin, async(req,res)=>{
     const id = req.params.id
     const query = {_id : new ObjectId(id)}
     const result = await userCollection.deleteOne(query)
@@ -118,6 +168,14 @@ async function run() {
         const result = await guidesCollection.find().toArray()
         res.send(result)
     })
+    app.post('/guides', async(req,res)=>{
+        const guides = req.body
+        const result = await guidesCollection.insertOne(guides)
+        res.send(result)
+    })
+
+
+
 
      app.get('/admin-profile', async(req,res)=>{
         const tours = await tourCollection.estimatedDocumentCount()
@@ -131,7 +189,7 @@ async function run() {
 
 
     // bookings related api
-     app.get('/bookings', async(req,res)=>{
+     app.get('/bookings',verifytoken,async(req,res)=>{
         const email = req.query.email
         const query ={email : email}
         const result= await bookingCollection.find(query).toArray()
@@ -145,7 +203,7 @@ async function run() {
     })
 
 
-    app.get('/wishlist', async(req,res)=>{
+    app.get('/wishlist',verifytoken, async(req,res)=>{
         const email = req.query.email
         const query ={email : email}
         const result= await wishCollection.find(query).toArray()

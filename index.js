@@ -7,6 +7,7 @@ require('dotenv').config()
 const app = express()
 const port = process.env.PORT || 5000
 
+
 app.use(cors())
 app.use(express.json())
 console.log(process.env.DB_USER);
@@ -245,8 +246,13 @@ async function run() {
         //story related api
 
         app.get('/story', async (req, res) => {
-            const result = await storyCollection.find().toArray()
-            res.send(result)
+            try {
+    const result = await storyCollection.find().toArray()
+    res.send(result)
+  } catch (err) {
+    console.error('Error fetching story:', err)
+    res.status(500).send({ message: 'Internal Server Error' })
+  }
         })
         app.post('/story', async (req, res) => {
             const story = req.body
